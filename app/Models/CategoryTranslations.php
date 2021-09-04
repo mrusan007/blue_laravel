@@ -5,15 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Ingredient extends Model
-
+class CategoryTranslations extends Model
 {
-    
     use HasFactory;
-
-
-    public function meals()
-    {
-        return $this->belongsToMany(Meal::class);
-    }
+    public $timestamps = false;
 }
