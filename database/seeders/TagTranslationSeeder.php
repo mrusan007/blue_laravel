@@ -29,7 +29,7 @@ class TagTranslationSeeder extends Seeder
  
              TagTranslations::factory()->create([
                  'tag_id' => $i,
-                 'title'=> "Le Tag $i en",
+                 'title'=> "Le Tag $i fr",
                  'locale'=> 'fr'
              ]);
  

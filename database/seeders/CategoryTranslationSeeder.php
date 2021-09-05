@@ -30,7 +30,7 @@ class CategoryTranslationSeeder extends Seeder
 
             CategoryTranslations::factory()->create([
                 'category_id' => $i,
-                'title'=> "Categorie $i en",
+                'title'=> "Categorie $i fr",
                 'locale'=> 'fr'
             ]);
 

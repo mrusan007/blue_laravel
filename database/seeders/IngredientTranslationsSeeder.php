@@ -29,7 +29,7 @@ class IngredientTranslationsSeeder extends Seeder
  
              IngredientTranslations::factory()->create([
                  'ingredient_id' => $i,
-                 'title'=> "Le Ingredie $i en",
+                 'title'=> "Le Ingredie $i fr",
                  'locale'=> 'fr'
              ]);
  
