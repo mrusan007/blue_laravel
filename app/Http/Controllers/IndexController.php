@@ -6,17 +6,38 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use App\Models\Meal;
+use App\Models\MealTranslation;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class IndexController extends Controller
 {   
 
-    function attachToCategory($array){
+    function attachToMeal($array, $lang){
 
         $new_array = [];
 
-        
+        foreach($array as $meal){
+
+            $object_array = [];
+
+            $translation = MealTranslation::all()
+            ->where('meal_id', $meal->id)
+            ->where('locale', $lang)->first();
+
+            
+
+
+                    
+            $object_array['id'] =$meal->id;
+           $object_array['title'] =$translation->title;
+           $object_array['description'] =$translation->description;
+           $object_array['status'] =$meal->status;
+
+           $new_array[] = $object_array;
+
+        }
+        return $new_array;
     }
 
     function categoryFilter($category){
@@ -124,33 +145,29 @@ class IndexController extends Controller
     {
         self::validateRequest($request);
 
-        #$category = $request->input('category');
+        $category = $request->input('category');
         $tags = $request->input('tags');
-        #$meal_list = self::categoryFilter($category);
         $lang = $request->input('lang');
-        $meal_list = self::tagFilter($tags);
-        app()->setLocale($lang);
         
-        // $response = array(
-        //     'products'   => $myList->getItems(),
-        //     'pagination' => array(
-        //         'total'        => $myList->getTotal(),
-        //         'per_page'     => $myList->getPerPage(),
-        //         'current_page' => $myList->getCurrentPage(),
-        //         'last_page'    => $myList->getLastPage(),
-        //         'from'         => $myList->getFrom(),
-        //         'to'           => $myList->getTo()
-        //     )
-        // );
+        if(!empty($category)){
+            $meal_list = self::categoryFilter($category);
+        }
+        else{
+            $meal_list = self::tagFilter($tags);
+        }
         
-        $paginated_array = self::paginateArray($meal_list, $request);
+       
+        
+        $array1 = self::attachToMeal($meal_list, $lang);
+        
+        $paginated_array = self::paginateArray($array1, $request);
         
 
        
 
         #return Response::json($response); 
         return response()->json([
-             $paginated_array    
+             $paginated_array   
         ]);
     }
 }
