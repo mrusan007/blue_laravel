@@ -25,7 +25,6 @@ class MealFactory extends Factory
         return [
             'category_id'=>1,
             'status'=>'created',
-            'slug'=>$this->faker->slug,
         ];
     }
 }
