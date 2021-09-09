@@ -17,7 +17,31 @@ use Illuminate\Validation\ValidationException;
 class IndexController extends Controller
 {   
 
+    function filterDiffTime($all_meals,  $diff_time){
 
+
+
+        $query_date = date('c', intval($diff_time));
+        $meals = [];
+        
+
+        foreach($all_meals as $meal){
+            if($meal->status == 'created' && $meal->created_at > $query_date){
+                $meals[] = $meal;
+                
+            }
+            elseif($meal->status == 'updated' && $meal->updated_at > $query_date){
+                $meals[] = $meal;
+                
+            }
+            elseif($meal->status == 'deleted' && $meal->deleted_at > $query_date){
+                $meals[] = $meal;
+                
+            }
+        }
+
+        return $meals;
+    }
     
     function attachTagToMeal($meal, $lang){
         $tags_array = [];
@@ -121,26 +145,68 @@ class IndexController extends Controller
 
     }
 
-    function categoryFilter($category){
-      
+    function categoryFilter($category, $diff_time){
+            
             if($category == '!NULL'){
+
+                if(empty($diff_time)){
+                    
+                    $meals = Meal::all()->whereNotIn('category_id', [NULL]);
+                    return $meals;
+                }
+                else{
+                    $all_meals = Meal::all()->whereNotIn('category_id', [NULL]);
+                    $meals = self::filterDiffTime($all_meals, $diff_time);
+
+                    return $meals;
+                }
                 
-                $meals = Meal::all()->whereNotIn('category_id', [NULL]);
-                return $meals
-                ->makeHidden(['created_at', 'updated_at','deleted_at','category_id']);
+            }
+            elseif($category == 'NULL'){
+
+                if(empty($diff_time)){
+                    
+                    $meals = Meal::all()->whereNull('category_id');
+                    return $meals;
+                }
+                else{
+                    $all_meals = Meal::all()->whereNull('category_id');
+                    $meals = self::filterDiffTime($all_meals, $diff_time);
+
+                    return $meals;
+                }
+
             }
             else{
-                return Meal::where('category_id', $category)->get()
-                ->makeHidden(['created_at', 'updated_at','deleted_at','category_id']);
+
+                if(empty($diff_time)){
+                    
+                    return Meal::where('category_id', $category)->get();
+                }
+                else{
+                    $all_meals = Meal::where('category_id', $category)->get();
+                    $meals = self::filterDiffTime($all_meals, $diff_time);
+
+                    return $meals;
+                }
+                
             }
             
             
     }
 
-    function tagFilter($tag_input){
+    function tagFilter($tag_input, $diff_time){
+        
+        if(empty($diff_time)){
+        $meals = Meal::all()
+            ->where('status', 'created');
+        }
+        else{
+            $all_meals = Meal::all();
+            $meals = self::filterDiffTime($all_meals, $diff_time);
+                    
+        }
 
-
-        $meals = Meal::all();
 
         if(str_contains($tag_input,',')){
             
@@ -215,6 +281,10 @@ class IndexController extends Controller
             
             throw new \ErrorException('Langauge required!');
         }
+
+        if(intval($request->input('diff_time')) < 0){
+            throw new \ErrorException('Diff Time less then zero !');
+        }
     }
     function filterWith($with){
 
@@ -246,13 +316,16 @@ class IndexController extends Controller
         $tags = $request->input('tags');
         $lang = $request->input('lang');
         $with = $request->input('with');
+        $diff_time = $request->input('diff_time');
+
         $with_array = self::filterWith($with);
         
         if(!empty($category)){
-            $meal_list = self::categoryFilter($category);
+            $meal_list = self::categoryFilter($category, $diff_time);
         }
-        else{
-            $meal_list = self::tagFilter($tags);
+
+        if(!empty($tags)){
+            $meal_list = self::tagFilter($tags, $diff_time);
         }
         
        
