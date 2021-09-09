@@ -19,7 +19,7 @@ class IndexController extends Controller
 
     function filterDiffTime($all_meals,  $diff_time){
 
-
+        //filter meals with diff_time if needed
 
         $query_date = date('c', intval($diff_time));
         $meals = [];
@@ -44,6 +44,9 @@ class IndexController extends Controller
     }
     
     function attachTagToMeal($meal, $lang){
+
+        //attach tags to meal if needed
+
         $tags_array = [];
 
         foreach($meal->tags as $tag){
@@ -66,6 +69,9 @@ class IndexController extends Controller
 
 
     function attachIngredientsToMeal($meal, $lang){
+
+        //attach ingredients to meal if needed
+
         $ingredients_array = [];
 
         foreach($meal->ingredients as $ingredient){
@@ -87,6 +93,8 @@ class IndexController extends Controller
     }
 
     function attachToMeal($array, $lang, $with_array){
+
+        //get meals objects ready for json response
 
         $new_array = [];
 
@@ -126,6 +134,8 @@ class IndexController extends Controller
     }
 
     function attachCategoryToMeal($meal, $lang){
+
+        //attach category to meal if needed
         
             $category_array = [];
             $category = Category::findOrFail($meal->category_id);
@@ -146,6 +156,8 @@ class IndexController extends Controller
     }
 
     function categoryFilter($category, $diff_time){
+
+        //filtering meals with category
             
             if($category == '!NULL'){
 
@@ -195,14 +207,24 @@ class IndexController extends Controller
             
     }
 
-    function tagFilter($tag_input, $diff_time){
+    function tagFilter($tag_input, $category, $diff_time){
+
+        //filtering meals with tags: many to many
         
         if(empty($diff_time)){
-        $meals = Meal::all()
-            ->where('status', 'created');
+            $meals = Meal::all()
+                ->where('status', 'created');
+            if(!empty($category)){
+                $meals = Meal::all()
+                    ->where('status', 'created')
+                    ->where('category_id', $category);
+        } 
         }
         else{
             $all_meals = Meal::all();
+            if(!empty($category)){
+                $all_meals=Meal::all()->where('category_id', $category);
+            } 
             $meals = self::filterDiffTime($all_meals, $diff_time);
                     
         }
@@ -248,11 +270,13 @@ class IndexController extends Controller
 
     function paginateArray($array, $request){
 
+        //almost the same paginator as needed
+
         $per_page = $request->input('per_page');
         $page = $request->input('page');
 
         $total = count($array);
-        $per_page = $per_page ?? 3;
+        $per_page = $per_page ?? $total;
         $current_page = $page ?? 1;
 
         $starting_point = ($current_page * $per_page) - $per_page;
@@ -270,6 +294,8 @@ class IndexController extends Controller
 
     function validateRequest($request){
 
+        //trying to validate some parameters
+
         $rules = [
             'lang' => 'required'
         ];
@@ -282,11 +308,21 @@ class IndexController extends Controller
             throw new \ErrorException('Langauge required!');
         }
 
-        if(intval($request->input('diff_time')) < 0){
-            throw new \ErrorException('Diff Time less then zero !');
+        if(!empty($request->input('diff_time')) && intval($request->input('diff_time')) < 0){
+            throw new \ErrorException('Diff Time less than zero !');
+        }
+
+        if(!empty($request->input('per_page')) && intval($request->input('per_page')) < 0){
+            throw new \ErrorException('Per page less than zero !');
+        }
+
+        if(!empty($request->input('page')) && intval($request->input('page')) < 0){
+            throw new \ErrorException('Page less than zero !');
         }
     }
     function filterWith($with){
+
+        //check if $with parameter has value
 
         $with_array = [];
 
@@ -309,9 +345,11 @@ class IndexController extends Controller
     
 
     public function show(Request $request)
-    {
+    {   
+        //validating
         self::validateRequest($request);
 
+        //get parameters
         $category = $request->input('category');
         $tags = $request->input('tags');
         $lang = $request->input('lang');
@@ -320,24 +358,25 @@ class IndexController extends Controller
 
         $with_array = self::filterWith($with);
         
-        if(!empty($category)){
+        //check with which parameters to get meals
+        if(!empty($category) && !empty($tags)){
+            $meal_list = self::tagFilter($tags, $category, $diff_time);
+        }
+        elseif(!empty($category)){
             $meal_list = self::categoryFilter($category, $diff_time);
         }
-
-        if(!empty($tags)){
-            $meal_list = self::tagFilter($tags, $diff_time);
+        elseif(!empty($tags)){
+            $meal_list = self::tagFilter($tags, $category, $diff_time);
         }
         
        
-        
+        //get objects ready
         $array1 = self::attachToMeal($meal_list, $lang, $with_array);
         
+        //paginate for response
         $paginated_array = self::paginateArray($array1, $request);
         
 
-       
-
-        #return Response::json($response); 
         return response()->json([
              $paginated_array   
         ]);
